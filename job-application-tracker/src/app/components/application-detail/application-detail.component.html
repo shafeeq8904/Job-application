@@ -1,0 +1,50 @@
+<div class="container mt-4" *ngIf="app">
+  <h4>Application Details</h4>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <p><strong>Job Title:</strong> {{ app.jobTitle }}</p>
+      <p><strong>Company:</strong> {{ app.companyName }}</p>
+      <p><strong>Location:</strong> {{ app.location }}</p>
+      <p><strong>Status:</strong> {{ app.status }}</p>
+      <p><strong>Date:</strong> {{ app.applicationDate | date }}</p>
+      <p><strong>Notes:</strong> {{ app.notes }}</p>
+      <p><strong>User:</strong> {{ app.userName }}</p>
+      <div *ngIf="editing && isAdmin">
+        <label><strong>Update Status</strong></label>
+        <select class="form-select mb-2 mt-2" [(ngModel)]="updatedStatus">
+            <option>Applied</option>
+            <option>Interview Scheduled</option>
+            <option>Offered</option>
+            <option>Rejected</option>
+        </select>
+        <label>Notes:</label>
+        <textarea [(ngModel)]="updatedNotes" name="notes" class="form-control mb-2" rows="3"></textarea>
+        <button class="btn btn-success me-2" (click)="saveChanges()">Save</button>
+        <button class="btn btn-secondary" (click)="editing = false">Cancel</button>
+        </div>
+
+        <div *ngIf="isAdmin && !editing">
+        <button class="btn btn-primary me-2" (click)="toggleEdit()">Edit</button>
+        <button class="btn btn-danger" (click)="deleteApplication()">Delete</button>
+        </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h5>Status History</h5>
+      <ul *ngIf="logs.length > 0; else noLogs">
+        <li *ngFor="let log of logs">
+          {{ log.newStatus }} - {{ log.timestamp | date:'short' }}
+        </li>
+      </ul>
+
+      <p *ngIf="!editing"><strong>Status:</strong> {{ app.status }}</p>
+
+      <ng-template #noLogs>
+        <p>No status logs available.</p>
+      </ng-template>
+    </div>
+  </div>
+</div>

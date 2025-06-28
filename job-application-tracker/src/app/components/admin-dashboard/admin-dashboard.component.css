@@ -1,0 +1,6 @@
+.container {
+  max-width: 900px;
+}
+canvas {
+  max-width: 100% !important;
+}

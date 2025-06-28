@@ -1,0 +1,48 @@
+<div class="container mt-4">
+  <h4>Create New Application</h4>
+
+  <form (ngSubmit)="submitApplication()">
+    <div class="mb-3">
+      <label>Job Title</label>
+      <input class="form-control" [(ngModel)]="application.jobTitle" name="jobTitle" required />
+    </div>
+
+    <div class="mb-3">
+      <label>Company</label>
+      <select class="form-select" [(ngModel)]="application.companyName" name="companyName" required>
+        <option value="">Select Company</option>
+        <option *ngFor="let company of companyOptions" [value]="company">{{ company }}</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label>Location</label>
+      <input class="form-control" [(ngModel)]="application.location" name="location" required />
+    </div>
+
+    <div class="mb-3">
+        <label>Application Date</label>
+        <input
+            type="date"
+            class="form-control"
+            [(ngModel)]="application.applicationDate"
+            name="applicationDate"
+            [value]="application.applicationDate"
+            disabled
+        />
+    </div>
+
+    <div class="mb-3">
+      <label>Status</label>
+      <input class="form-control" [(ngModel)]="application.status" name="status" [value]="'Applied'" disabled />
+    </div>
+
+    <div class="mb-3">
+      <label>Notes</label>
+      <textarea class="form-control" [(ngModel)]="application.notes" name="notes"></textarea>
+    </div>
+
+    <button class="btn btn-success">Submit</button>
+    <div *ngIf="error" class="text-danger mt-2">{{ error }}</div>
+  </form>
+</div>

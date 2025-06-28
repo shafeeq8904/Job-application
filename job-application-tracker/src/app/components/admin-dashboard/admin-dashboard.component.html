@@ -1,0 +1,43 @@
+<div class="container mt-4">
+  <h3>Admin Dashboard</h3>
+
+  <div class="row mt-3">
+    <div class="col-md-6 mb-3">
+      <div class="card p-3 text-center">
+        <h5>Total Applications</h5>
+        <h2>{{ totalApplications }}</h2>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <div class="card p-3">
+        <h5>Status Breakdown</h5>
+        <canvas baseChart
+        [data]="chartData"
+        [labels]="chartLabels"
+        [type]="chartType">
+        </canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-4">
+    <div class="card-body">
+      <h5>Applications Per User</h5>
+      <table class="table table-bordered table-hover">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Application Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of applicationsPerUser">
+            <td>{{ user.userName }}</td>
+            <td>{{ user.applicationCount }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

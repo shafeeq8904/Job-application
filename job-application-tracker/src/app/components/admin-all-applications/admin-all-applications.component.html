@@ -1,0 +1,57 @@
+<div class="container mt-4">
+  <h4>All Applications</h4>
+
+  <div *ngIf="applications.length === 0">
+    <p *ngIf="filtersActive">No results found for the selected filters.</p>
+    <p *ngIf="!filtersActive">No applications found.</p>
+  </div>
+
+  <div class="row mb-3">
+  <div class="col-md-4">
+    <label>Status</label>
+    <select class="form-select" [(ngModel)]="selectedStatus">
+      <option value="">All</option>
+      <option *ngFor="let status of statusOptions" [value]="status">{{ status }}</option>
+    </select>
+  </div>
+
+  <div class="col-md-4">
+    <label>Company</label>
+    <select class="form-select" [(ngModel)]="selectedCompany">
+      <option value="">All</option>
+      <option *ngFor="let company of companyOptions" [value]="company">{{ company }}</option>
+    </select>
+  </div>
+
+  <div class="col-md-4 d-flex align-items-end gap-2">
+    <button class="btn btn-primary" (click)="applyFilters()">Apply</button>
+    <button class="btn btn-secondary" (click)="clearFilters()">Clear</button>
+  </div>
+</div>
+
+
+  <div *ngIf="applications.length > 0">
+    <table class="table table-bordered table-striped mt-3">
+      <thead class="table-dark">
+        <tr>
+          <th>User</th>
+          <th>Job Title</th>
+          <th>Company</th>
+          <th>Location</th>
+          <th>Status</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let app of applications">
+          <td>{{ app.userName }}</td>
+          <td><a [routerLink]="['/applications', app.id]">{{ app.jobTitle }}</a></td>
+          <td>{{ app.companyName }}</td>
+          <td>{{ app.location }}</td>
+          <td>{{ app.status }}</td>
+          <td>{{ app.applicationDate | date }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

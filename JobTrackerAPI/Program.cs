@@ -24,8 +24,26 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 
 #endregion
 
+
+#region cors
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials()
+              .WithOrigins(
+                  "http://127.0.0.1:4200",
+                  "http://localhost:4200"
+              );
+    });
+});
+#endregion
+
 var app = builder.Build();
 app.UseSwagger();
+app.UseCors();
 app.UseSwaggerUI();
 app.UseAuthorization();
 app.MapControllers();

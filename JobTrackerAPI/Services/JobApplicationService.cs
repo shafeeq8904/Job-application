@@ -34,7 +34,7 @@ public class JobApplicationService : IJobApplicationService
             JobTitle = dto.JobTitle,
             CompanyName = dto.CompanyName,
             Location = dto.Location,
-            ApplicationDate = dto.ApplicationDate,
+            ApplicationDate = dto.ApplicationDate.ToUniversalTime() ,
             Status = dto.Status,
         };
 
@@ -56,7 +56,8 @@ public class JobApplicationService : IJobApplicationService
     }
 
     // Fetches all job applications for a user or all applications if the user is an admin
-    public async Task<List<JobApplicationResponseDto>> GetApplicationsAsync(int userId, string role)
+   public async Task<List<JobApplicationResponseDto>> GetApplicationsAsync(
+    int userId, string role, string? status = null, string? companyName = null)
     {
         IEnumerable<JobApplication> apps;
 
@@ -72,6 +73,17 @@ public class JobApplicationService : IJobApplicationService
             );
         }
 
+        // ✅ Apply optional filters
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            apps = apps.Where(a => a.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(companyName))
+        {
+            apps = apps.Where(a => a.CompanyName.Contains(companyName, StringComparison.OrdinalIgnoreCase));
+        }
+
         return apps.Select(app => new JobApplicationResponseDto
         {
             Id = app.Id,
@@ -85,6 +97,7 @@ public class JobApplicationService : IJobApplicationService
             Notes = app.Notes
         }).ToList();
     }
+
 
     // Fetches a single job application by ID
     public async Task<JobApplicationResponseDto?> GetByIdAsync(int id)
@@ -151,12 +164,24 @@ public class JobApplicationService : IJobApplicationService
         };
     }
 
-    public async Task<bool> DeleteAsync(int id, int userId)
+    public async Task<bool> DeleteAsync(int id, int userId, string role)
     {
-        var apps = await _applicationRepo.FindAsync(
-            a => a.Id == id && a.UserId == userId,
-            q => q.Include(a => a.StatusLogs)
-        );
+        IEnumerable<JobApplication> apps;
+
+        if (role == "Admin")
+        {
+            apps = await _applicationRepo.FindAsync(
+                a => a.Id == id,
+                q => q.Include(a => a.StatusLogs)
+            );
+        }
+        else
+        {
+            apps = await _applicationRepo.FindAsync(
+                a => a.Id == id && a.UserId == userId,
+                q => q.Include(a => a.StatusLogs)
+            );
+        }
 
         var app = apps.FirstOrDefault();
         if (app == null) return false;

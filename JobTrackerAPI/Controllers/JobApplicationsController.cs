@@ -55,20 +55,22 @@ public class JobApplicationsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetApplications([FromQuery] int userId, [FromQuery] string role)
+    public async Task<IActionResult> GetApplications([FromQuery] int? userId, [FromQuery] string role)
     {
-
         if (string.IsNullOrWhiteSpace(role))
         {
             return BadRequest(ApiResponse<List<JobApplicationResponseDto>>.ErrorResponse("Role is required"));
         }
 
-        if (role != "Admin" && userId <= 0)
+        if (role != "Admin" && (!userId.HasValue || userId <= 0))
         {
             return BadRequest(ApiResponse<List<JobApplicationResponseDto>>.ErrorResponse("Invalid userId for non-admin role"));
         }
 
-        var apps = await _applicationService.GetApplicationsAsync(userId, role);
+        var uid = userId ?? 0; // fallback for admin
+
+        var apps = await _applicationService.GetApplicationsAsync(uid, role);
+
         if (apps == null || !apps.Any())
         {
             return NotFound(ApiResponse<List<JobApplicationResponseDto>>.ErrorResponse("No applications found"));
@@ -101,14 +103,14 @@ public class JobApplicationsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id, [FromQuery] int userId)
+    public async Task<IActionResult> Delete(int id, [FromQuery] int userId, [FromQuery] string role)
     {
-        if (userId <= 0)
+        if (userId <= 0 || string.IsNullOrWhiteSpace(role))
         {
-            return BadRequest(ApiResponse<string>.ErrorResponse("UserId is Invalid"));
+            return BadRequest(ApiResponse<string>.ErrorResponse("UserId or role is invalid"));
         }
 
-        var success = await _applicationService.DeleteAsync(id, userId);
+        var success = await _applicationService.DeleteAsync(id, userId, role);
 
         if (!success)
         {
@@ -116,6 +118,33 @@ public class JobApplicationsController : ControllerBase
         }
 
         return Ok(ApiResponse<string>.SuccessResponse("Application deleted", "Deleted successfully"));
+    }
+
+    [HttpGet("filter")]
+    public async Task<IActionResult> FilterApplications(
+        [FromQuery] int userId,
+        [FromQuery] string role,
+        [FromQuery] string? status,
+        [FromQuery] string? companyName)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return BadRequest(ApiResponse<List<JobApplicationResponseDto>>.ErrorResponse("Role is required"));
+        }
+
+        if (role != "Admin" && userId <= 0)
+        {
+            return BadRequest(ApiResponse<List<JobApplicationResponseDto>>.ErrorResponse("Invalid userId"));
+        }
+
+        var apps = await _applicationService.GetApplicationsAsync(userId, role, status, companyName);
+
+        if (!apps.Any())
+        {
+            return NotFound(ApiResponse<List<JobApplicationResponseDto>>.ErrorResponse("No applications found"));
+        }
+
+        return Ok(ApiResponse<List<JobApplicationResponseDto>>.SuccessResponse("Filtered applications fetched", apps));
     }
 
 

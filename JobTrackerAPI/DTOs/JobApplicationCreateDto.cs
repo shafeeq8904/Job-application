@@ -18,7 +18,7 @@ public class JobApplicationCreateDto
     public string Location { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Application date is required.")]
-    public DateTime ApplicationDate { get; set; }
+    public DateTime ApplicationDate { get; set; } 
 
     [Required(ErrorMessage = "Status is required.")]
     [AllowedStatus]

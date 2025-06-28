@@ -1,0 +1,24 @@
+<div class="container mt-4">
+  <h3>Welcome, {{ userName }}</h3>
+
+  <div class="mt-4">
+    <div class="card mb-3">
+      <div class="card-body">
+        <h5>Total Applications</h5>
+        <p class="h4">{{ totalApplications }}</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <h5>Status Breakdown</h5>
+        <ul *ngIf="totalApplications > 0">
+          <li *ngFor="let status of statusKeys()">
+            {{ status }}: {{ statusCounts[status] }}
+          </li>
+        </ul>
+        <p *ngIf="totalApplications === 0">No applications submitted yet.</p>
+      </div>
+    </div>
+  </div>
+</div>

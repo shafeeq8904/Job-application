@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace JobTrackerAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250627135851_initial")]
+    [Migration("20250628061801_initial")]
     partial class initial
     {
         /// <inheritdoc />
@@ -36,17 +36,8 @@ namespace JobTrackerAPI.Migrations
                     b.Property<DateTime>("ApplicationDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("CompanyName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("JobTitle")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("JobPostingId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Notes")
                         .IsRequired()
@@ -61,9 +52,44 @@ namespace JobTrackerAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("JobPostingId");
+
+                    b.HasIndex("UserId", "JobPostingId")
+                        .IsUnique();
 
                     b.ToTable("JobApplications");
+                });
+
+            modelBuilder.Entity("JobTrackerAPI.Models.JobPosting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("JobTitle")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("PostedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("JobPostings");
                 });
 
             modelBuilder.Entity("JobTrackerAPI.Models.StatusLog", b =>
@@ -118,11 +144,19 @@ namespace JobTrackerAPI.Migrations
 
             modelBuilder.Entity("JobTrackerAPI.Models.JobApplication", b =>
                 {
+                    b.HasOne("JobTrackerAPI.Models.JobPosting", "JobPosting")
+                        .WithMany("Applications")
+                        .HasForeignKey("JobPostingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("JobTrackerAPI.Models.User", "User")
                         .WithMany("Applications")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("JobPosting");
 
                     b.Navigation("User");
                 });
@@ -141,6 +175,11 @@ namespace JobTrackerAPI.Migrations
             modelBuilder.Entity("JobTrackerAPI.Models.JobApplication", b =>
                 {
                     b.Navigation("StatusLogs");
+                });
+
+            modelBuilder.Entity("JobTrackerAPI.Models.JobPosting", b =>
+                {
+                    b.Navigation("Applications");
                 });
 
             modelBuilder.Entity("JobTrackerAPI.Models.User", b =>

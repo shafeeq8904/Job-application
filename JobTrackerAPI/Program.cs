@@ -20,6 +20,8 @@ builder.Services.AddScoped<IJobApplicationService, JobApplicationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStatusLogService, StatusLogService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IJobPostingService, JobPostingService>();
+
 
 
 #endregion

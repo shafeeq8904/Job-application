@@ -7,51 +7,62 @@ public class JobApplicationService : IJobApplicationService
 {
     private readonly IRepository<JobApplication> _applicationRepo;
     private readonly IRepository<User> _userRepo;
+    private readonly IRepository<JobPosting> _jobPostingRepo;
 
-    public JobApplicationService(IRepository<JobApplication> applicationRepo, IRepository<User> userRepo)
+    public JobApplicationService(IRepository<JobApplication> applicationRepo, IRepository<User> userRepo, IRepository<JobPosting> jobPostingRepo)
     {
         _applicationRepo = applicationRepo;
         _userRepo = userRepo;
+        _jobPostingRepo = jobPostingRepo;
     }
 
     public async Task<JobApplicationResponseDto> CreateApplicationAsync(JobApplicationCreateDto dto)
     {
         var user = await _userRepo.GetByIdAsync(dto.UserId);
-
         if (user == null)
-        {
-            throw new Exception("Invalid user. User does not exist.");
-        }
+            throw new Exception("Invalid user.");
 
-        if (user.Role != "User" && user.Role != "Admin")
-        {
-            throw new Exception("Unauthorized role.");
-        }
+        // 🚫 Prevent duplicate applications
+        var existing = await _applicationRepo.FindAsync(
+            a => a.UserId == dto.UserId && a.JobPostingId == dto.JobPostingId
+        );
+        if (existing.Any())
+            throw new Exception("You have already applied to this job.");
+
+        var jobPosting = await _jobPostingRepo.GetByIdAsync(dto.JobPostingId);
+        if (jobPosting == null)
+            throw new Exception("Invalid job posting.");
 
         var app = new JobApplication
         {
             UserId = dto.UserId,
-            JobTitle = dto.JobTitle,
-            CompanyName = dto.CompanyName,
-            Location = dto.Location,
-            ApplicationDate = dto.ApplicationDate.ToUniversalTime() ,
-            Status = dto.Status,
+            JobPostingId = dto.JobPostingId,
+            ApplicationDate = DateTime.UtcNow,
+            Status = "Applied",
+            Notes = dto.Notes
         };
 
         await _applicationRepo.AddAsync(app);
         await _applicationRepo.SaveAsync();
 
-        // Manual mapping to response DTO
+        // Load job posting and user info
+        var added = (await _applicationRepo.FindAsync(
+            a => a.Id == app.Id,
+            q => q.Include(x => x.User).Include(x => x.JobPosting)
+        )).First();
+
         return new JobApplicationResponseDto
         {
-            Id = app.Id,
-            UserId = user.Id,
-            UserName = user.Name,
-            JobTitle = app.JobTitle,
-            CompanyName = app.CompanyName,
-            Location = app.Location,
-            ApplicationDate = app.ApplicationDate,
-            Status = app.Status,
+            Id = added.Id,
+            UserId = added.UserId,
+            UserName = added.User.Name,
+            JobPostingId = added.JobPostingId,
+            JobTitle = added.JobPosting.JobTitle,
+            CompanyName = added.JobPosting.CompanyName,
+            Location = added.JobPosting.Location,
+            ApplicationDate = added.ApplicationDate,
+            Status = added.Status,
+            Notes = added.Notes
         };
     }
 
@@ -63,17 +74,17 @@ public class JobApplicationService : IJobApplicationService
 
         if (role == "Admin")
         {
-            apps = await _applicationRepo.GetAllAsync(q => q.Include(a => a.User));
+            apps = await _applicationRepo.GetAllAsync(q =>
+                q.Include(a => a.User).Include(a => a.JobPosting));
         }
         else
         {
             apps = await _applicationRepo.FindAsync(
                 a => a.UserId == userId,
-                q => q.Include(a => a.User)
+                q => q.Include(a => a.User).Include(a => a.JobPosting)
             );
         }
 
-        // ✅ Apply optional filters
         if (!string.IsNullOrWhiteSpace(status))
         {
             apps = apps.Where(a => a.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
@@ -81,7 +92,7 @@ public class JobApplicationService : IJobApplicationService
 
         if (!string.IsNullOrWhiteSpace(companyName))
         {
-            apps = apps.Where(a => a.CompanyName.Contains(companyName, StringComparison.OrdinalIgnoreCase));
+            apps = apps.Where(a => a.JobPosting.CompanyName.Contains(companyName, StringComparison.OrdinalIgnoreCase));
         }
 
         return apps.Select(app => new JobApplicationResponseDto
@@ -89,9 +100,10 @@ public class JobApplicationService : IJobApplicationService
             Id = app.Id,
             UserId = app.UserId,
             UserName = app.User.Name,
-            JobTitle = app.JobTitle,
-            CompanyName = app.CompanyName,
-            Location = app.Location,
+            JobPostingId = app.JobPostingId,
+            JobTitle = app.JobPosting.JobTitle,
+            CompanyName = app.JobPosting.CompanyName,
+            Location = app.JobPosting.Location,
             ApplicationDate = app.ApplicationDate,
             Status = app.Status,
             Notes = app.Notes
@@ -100,24 +112,30 @@ public class JobApplicationService : IJobApplicationService
 
 
     // Fetches a single job application by ID
-    public async Task<JobApplicationResponseDto?> GetByIdAsync(int id)
+    public async Task<JobApplicationResponseDto?> GetByIdAsync(int id, int userId, string role)
     {
         var apps = await _applicationRepo.FindAsync(
             a => a.Id == id,
-            q => q.Include(a => a.User)
+            q => q.Include(a => a.User).Include(a => a.JobPosting)
         );
 
         var app = apps.FirstOrDefault();
-        if (app == null) return null;
+        if (app == null)
+            return null;
+
+        // 🔒 Access Control: user can only access their own applications
+        if (role != "Admin" && app.UserId != userId)
+            return null;
 
         return new JobApplicationResponseDto
         {
             Id = app.Id,
             UserId = app.UserId,
             UserName = app.User.Name,
-            JobTitle = app.JobTitle,
-            CompanyName = app.CompanyName,
-            Location = app.Location,
+            JobPostingId = app.JobPostingId,
+            JobTitle = app.JobPosting.JobTitle,
+            CompanyName = app.JobPosting.CompanyName,
+            Location = app.JobPosting.Location,
             ApplicationDate = app.ApplicationDate,
             Status = app.Status,
             Notes = app.Notes
@@ -127,9 +145,11 @@ public class JobApplicationService : IJobApplicationService
     public async Task<JobApplicationResponseDto?> UpdateAsync(int id, JobApplicationUpdateDto dto)
     {
         var apps = await _applicationRepo.FindAsync(
-            a => a.Id == id,
-            q => q.Include(a => a.User).Include(a => a.StatusLogs)
-        );
+        a => a.Id == id,
+        q => q.Include(a => a.User)
+              .Include(a => a.StatusLogs)
+              .Include(a => a.JobPosting)
+    );
 
         var app = apps.FirstOrDefault();
         if (app == null) return null;
@@ -155,9 +175,10 @@ public class JobApplicationService : IJobApplicationService
             Id = app.Id,
             UserId = app.UserId,
             UserName = app.User.Name,
-            JobTitle = app.JobTitle,
-            CompanyName = app.CompanyName,
-            Location = app.Location,
+            JobPostingId = app.JobPostingId,
+            JobTitle = app.JobPosting.JobTitle,
+            CompanyName = app.JobPosting.CompanyName,
+            Location = app.JobPosting.Location,
             ApplicationDate = app.ApplicationDate,
             Status = app.Status,
             Notes = app.Notes

@@ -41,16 +41,18 @@ public class AdminService : IAdminService
     public async Task<List<JobApplicationResponseDto>> GetAllApplicationsAsync()
     {
         var apps = await _context.JobApplications
-            .Include(a => a.User)
-            .OrderByDescending(a => a.ApplicationDate)
-            .ToListAsync();
+        .Include(a => a.User)
+        .Include(a => a.JobPosting)
+        .OrderByDescending(a => a.ApplicationDate)
+        .ToListAsync();
 
         return apps.Select(app => new JobApplicationResponseDto
         {
             Id = app.Id,
-            JobTitle = app.JobTitle,
-            CompanyName = app.CompanyName,
-            Location = app.Location,
+            JobPostingId = app.JobPostingId,
+            JobTitle = app.JobPosting.JobTitle,
+            CompanyName = app.JobPosting.CompanyName,
+            Location = app.JobPosting.Location,
             ApplicationDate = app.ApplicationDate,
             Status = app.Status,
             Notes = app.Notes,

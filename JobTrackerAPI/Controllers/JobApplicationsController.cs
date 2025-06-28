@@ -14,13 +14,18 @@ public class JobApplicationsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
+    public async Task<IActionResult> GetById(int id, [FromQuery] int userId, [FromQuery] string role)
     {
-        var result = await _applicationService.GetByIdAsync(id);
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return BadRequest(ApiResponse<JobApplicationResponseDto>.ErrorResponse("Role is required"));
+        }
+
+        var result = await _applicationService.GetByIdAsync(id, userId, role);
 
         if (result == null)
         {
-            return NotFound(ApiResponse<JobApplicationResponseDto>.ErrorResponse("Application not found"));
+            return NotFound(ApiResponse<JobApplicationResponseDto>.ErrorResponse("Application not found or access denied"));
         }
 
         return Ok(ApiResponse<JobApplicationResponseDto>.SuccessResponse("Application fetched", result));
@@ -58,30 +63,29 @@ public class JobApplicationsController : ControllerBase
     public async Task<IActionResult> GetApplications([FromQuery] int? userId, [FromQuery] string role)
     {
         if (string.IsNullOrWhiteSpace(role))
-        {
             return BadRequest(ApiResponse<List<JobApplicationResponseDto>>.ErrorResponse("Role is required"));
-        }
 
         if (role != "Admin" && (!userId.HasValue || userId <= 0))
-        {
             return BadRequest(ApiResponse<List<JobApplicationResponseDto>>.ErrorResponse("Invalid userId for non-admin role"));
-        }
 
-        var uid = userId ?? 0; // fallback for admin
+        int effectiveUserId = role == "Admin" ? 0 : userId!.Value;
 
-        var apps = await _applicationService.GetApplicationsAsync(uid, role);
+        var apps = await _applicationService.GetApplicationsAsync(effectiveUserId, role);
 
         if (apps == null || !apps.Any())
-        {
             return NotFound(ApiResponse<List<JobApplicationResponseDto>>.ErrorResponse("No applications found"));
-        }
 
         return Ok(ApiResponse<List<JobApplicationResponseDto>>.SuccessResponse("Applications fetched", apps));
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] JobApplicationUpdateDto dto)
+    public async Task<IActionResult> Update(int id, [FromBody] JobApplicationUpdateDto dto, [FromQuery] string role)
     {
+        if (role != "Admin")
+        {
+            return Unauthorized(ApiResponse<JobApplicationResponseDto>.ErrorResponse("Access denied: Admins only"));
+        }
+
         if (!ModelState.IsValid)
         {
             var errors = ModelState.ToDictionary(

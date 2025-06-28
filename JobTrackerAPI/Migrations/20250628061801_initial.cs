@@ -13,6 +13,23 @@ namespace JobTrackerAPI.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "JobPostings",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    JobTitle = table.Column<string>(type: "text", nullable: false),
+                    CompanyName = table.Column<string>(type: "text", nullable: false),
+                    Location = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    PostedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_JobPostings", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -34,9 +51,7 @@ namespace JobTrackerAPI.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<int>(type: "integer", nullable: false),
-                    JobTitle = table.Column<string>(type: "text", nullable: false),
-                    CompanyName = table.Column<string>(type: "text", nullable: false),
-                    Location = table.Column<string>(type: "text", nullable: false),
+                    JobPostingId = table.Column<int>(type: "integer", nullable: false),
                     ApplicationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
                     Notes = table.Column<string>(type: "text", nullable: false)
@@ -44,6 +59,12 @@ namespace JobTrackerAPI.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_JobApplications", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_JobApplications_JobPostings_JobPostingId",
+                        column: x => x.JobPostingId,
+                        principalTable: "JobPostings",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_JobApplications_Users_UserId",
                         column: x => x.UserId,
@@ -74,9 +95,15 @@ namespace JobTrackerAPI.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_JobApplications_UserId",
+                name: "IX_JobApplications_JobPostingId",
                 table: "JobApplications",
-                column: "UserId");
+                column: "JobPostingId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_JobApplications_UserId_JobPostingId",
+                table: "JobApplications",
+                columns: new[] { "UserId", "JobPostingId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_StatusLogs_ApplicationId",
@@ -92,6 +119,9 @@ namespace JobTrackerAPI.Migrations
 
             migrationBuilder.DropTable(
                 name: "JobApplications");
+
+            migrationBuilder.DropTable(
+                name: "JobPostings");
 
             migrationBuilder.DropTable(
                 name: "Users");
